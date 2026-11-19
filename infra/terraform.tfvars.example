@@ -1,0 +1,25 @@
+# ============================================================================
+# 示例变量文件（terraform.tfvars 模板）
+# 复制本文件为 terraform.tfvars 后填写实际值；请勿将真实凭据提交到仓库。
+# 规格均显式给出，apply 前请核对目标区域的规格与可用区。
+# ============================================================================
+
+# 华为云区域（部署前确认目标 region 的 flavor / 可用区字母真实可用）
+region        = "cn-north-4"
+
+# 资源命名前缀
+project_name  = "nimbus-demo"
+
+# 网络规划
+vpc_cidr      = "10.20.0.0/16"
+subnet_a_cidr = "10.20.1.0/24"
+subnet_b_cidr = "10.20.2.0/24"
+
+# DDS（文档数据库）管理员密码（敏感，建议在本地终端临时设置 TF_VAR_dds_password，而非写入文件）
+dds_password  = "Replace-With-Strong-Password-123!"
+
+# 演示开关：true 时应用数据页返回 5xx（供运维智能体排查）
+break_app     = false
+
+# DDS 中演示数据库名
+db_name       = "nimbus"

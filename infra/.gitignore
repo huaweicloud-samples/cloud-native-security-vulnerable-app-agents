@@ -1,0 +1,11 @@
+# 本地凭据与本地配置文件（不随仓库发布）
+terraform.tfvars
+terraform.tfvars.json
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+override.tf
+override.tf.json
+crash.log
+crash.*.log
