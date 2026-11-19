@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nimbus-app
+  labels:
+    app: nimbus-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nimbus-app
+  template:
+    metadata:
+      labels:
+        app: nimbus-app
+    spec:
+      containers:
+        - name: nimbus-app
+          # 验证态（无本地镜像时）：用 docker.io 官方 python:3.12-slim 作基础镜像，
+          # 通过 ConfigMap(nimbus-src) 注入仓库真实源码(app.py/requirements.txt)，
+          # 启动命令内 pip 走华为云 pypi 源装依赖并起 gunicorn。
+          # 生产态：改回 swr.cn-north-4.myhuaweicloud.com/<SWR_ORG>/nimbus-app:latest，
+          # 并删除 volumeMounts/volumes/configMap 与 command 覆盖，直接使用 Dockerfile 打包的镜像。
+          image: python:3.12-slim
+          workingDir: /app
+          command: ["sh", "-c"]
+          args:
+            - "python -c \"import urllib.request;urllib.request.urlretrieve('https://nimbus-demo-pypi-cc2cb3d0.obs.cn-north-4.myhuaweicloud.com/wheels.tar.gz','/tmp/w.tar.gz')\" && mkdir -p /tmp/wh && tar xzf /tmp/w.tar.gz -C /tmp/wh && pip install /tmp/wh/wheels/*.whl && exec gunicorn --bind 0.0.0.0:8080 --workers 1 --timeout 30 app:app"
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - secretRef:
+                name: nimbus-app-secret
+          volumeMounts:
+            - name: src
+              mountPath: /app
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 300
+            periodSeconds: 15
+      volumes:
+        - name: src
+          configMap:
+            name: nimbus-src
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nimbus-app
+spec:
+  # NodePort 模式：Terraform 已创建独享型 ELB，并将 CCE 节点 30080 注册为后端成员（见 infra/main.tf）
+  type: NodePort
+  selector:
+    app: nimbus-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+      nodePort: 30080
